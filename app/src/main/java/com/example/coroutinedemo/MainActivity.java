@@ -1,17 +1,16 @@
 package com.example.coroutinedemo;
 
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -20,6 +19,7 @@ public class MainActivity extends AppCompatActivity {
     private FragOutput fragResult;
     private String name;
     private String age;
+    private StageRunner runner = new StageRunner();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,22 +29,7 @@ public class MainActivity extends AppCompatActivity {
         fragName = new FragName().setLabel("Your name?");
         fragAge = new FragAge().setLabel("Your age?");
         fragResult = new FragOutput();
-        switchToFragment(1);
-    }
-
-    public void switchToFragment(int s) {
-        switch(s) {
-            case 1:
-                switchToFragment(fragName, "Get Name Fragment.");
-                break;
-            case 2:
-                switchToFragment(fragAge, "Get Age Fragment.");
-                break;
-            default:
-                fragResult.setLabel("Name: " + name + ", Age: " + age);
-                switchToFragment(fragResult, "Show result" );
-                break;
-        }
+        runner.resume(0);
     }
 
     public void switchToFragment(Fragment fragment, String fragName) {
@@ -111,8 +96,7 @@ public class MainActivity extends AppCompatActivity {
     public static class FragName extends FragInput {
         @Override
         public void onButtonClicked(String content) {
-            getMainActivity().setName(content);
-            getMainActivity().switchToFragment(2);
+            getMainActivity().runner.resume(content);
         }
 
         private MainActivity getMainActivity() {
@@ -123,8 +107,7 @@ public class MainActivity extends AppCompatActivity {
     public static class FragAge extends FragInput {
         @Override
         public void onButtonClicked(String content) {
-            getMainActivity().setAge(content);
-            getMainActivity().switchToFragment(3);
+            getMainActivity().runner.resume(content);
         }
 
         private MainActivity getMainActivity() {
@@ -164,6 +147,32 @@ public class MainActivity extends AppCompatActivity {
             setArguments(b);
             if(null != textView) textView.setText(label);
             return this;
+        }
+    }
+
+    enum Stage {
+        STAGE_1, STAGE_2, STAGE_3,
+    }
+
+    class StageRunner {
+        Stage stage = Stage.STAGE_1;
+        public <T> void resume(T v) {
+            switch (stage) {
+                case STAGE_1:
+                    switchToFragment(fragName, "Get Name Fragment.");
+                    stage = Stage.STAGE_2;
+                    break;
+                case STAGE_2:
+                    setName((String) v);
+                    switchToFragment(fragAge, "Get Age Fragment.");
+                    stage = Stage.STAGE_3;
+                    break;
+                default:
+                    setAge((String) v);
+                    fragResult.setLabel("Name: " + name + ", Age: " + age);
+                    switchToFragment(fragResult, "Show result");
+                    break;
+            }
         }
     }
 }
