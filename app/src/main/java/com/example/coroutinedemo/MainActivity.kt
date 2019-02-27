@@ -3,21 +3,22 @@ package com.example.coroutinedemo
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v7.app.AppCompatActivity
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import kotlinx.coroutines.Dispatchers
+import java.lang.RuntimeException
+import kotlin.coroutines.*
 
 class MainActivity : AppCompatActivity() {
 
     private var fragName: Fragment? = null
     private var fragAge: Fragment? = null
     private var fragResult: FragOutput? = null
-    private var name: String? = null
-    private var age: String? = null
-    private val runner = StageRunner()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,7 +27,26 @@ class MainActivity : AppCompatActivity() {
         fragName = FragName().setLabel("Your name?")
         fragAge = FragAge().setLabel("Your age?")
         fragResult = FragOutput()
-        runner.resume(0)
+
+        val complete = object: Continuation<Unit> {
+            override val context: CoroutineContext
+                get() = Dispatchers.Main
+
+            override fun resumeWith(result: Result<Unit>) {
+                Log.v(TAG, "The coroutine completed.")
+                if (result.isFailure) {
+                    result.exceptionOrNull()?.apply { throw this }
+                            ?: throw RuntimeException("Suspend function failure.")
+                }
+            }
+        }
+
+        suspend {
+            Log.v(TAG, "Already in the coroutine. Now in thread ${Thread.currentThread()}")
+            coRunner()
+        }.startCoroutine(complete)
+
+        Log.v(TAG, "After starting the coroutine. Now in thread ${Thread.currentThread()}")
     }
 
     fun switchToFragment(fragment: Fragment?, fragName: String) {
@@ -81,7 +101,7 @@ class MainActivity : AppCompatActivity() {
             get() = activity!! as MainActivity
 
         override fun onButtonClicked(content: String) {
-            mainActivity.runner.resume(content)
+            mainActivity.doneGetName(content)
         }
     }
 
@@ -91,7 +111,7 @@ class MainActivity : AppCompatActivity() {
             get() = activity!! as MainActivity
 
         override fun onButtonClicked(content: String) {
-            mainActivity.runner.resume(content)
+            mainActivity.doneGetAge(content)
         }
     }
 
@@ -128,29 +148,41 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    internal enum class Stage {
-        STAGE_1, STAGE_2, STAGE_3
+    var contGetName: Continuation<String>? = null
+    fun doneGetName(name: String) {
+        Log.v(TAG, "The name is gotten.")
+        contGetName!!.apply {
+            contGetName = null
+            resume(name)
+        }
     }
 
-    internal inner class StageRunner {
-        var stage = Stage.STAGE_1
-        fun <T> resume(v: T) {
-            when (stage) {
-                MainActivity.Stage.STAGE_1 -> {
-                    switchToFragment(fragName, "Get Name Fragment.")
-                    stage = Stage.STAGE_2
-                }
-                MainActivity.Stage.STAGE_2 -> {
-                    name = (v as String)
-                    switchToFragment(fragAge, "Get Age Fragment.")
-                    stage = Stage.STAGE_3
-                }
-                else -> {
-                    age = (v as String)
-                    fragResult!!.setLabel("Name: $name, Age: $age")
-                    switchToFragment(fragResult, "Show result")
-                }
-            }
+    var contGetAge: Continuation<String>? = null
+    fun doneGetAge(age: String) {
+        Log.v(TAG, "The age is gotten.")
+        contGetAge!!.apply {
+            contGetAge = null
+            resume(age)
         }
+    }
+
+    private suspend fun coRunner() {
+        Log.v(TAG, "Before getting name.")
+        val name = suspendCoroutine<String> {
+            cont -> contGetName = cont
+            switchToFragment(fragName, "Get Name Fragment.")
+        }
+        Log.v(TAG, "Before getting age.")
+        val age = suspendCoroutine<String> {
+            cont -> contGetAge = cont
+            switchToFragment(fragAge, "Get Age Fragment.")
+        }
+        Log.v(TAG, "Before showing results.")
+        fragResult!!.setLabel("Name: $name, Age: $age")
+        switchToFragment(fragResult, "Show result")
+    }
+
+    companion object {
+        val TAG = MainActivity::class.simpleName
     }
 }
