@@ -11,6 +11,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -28,7 +29,22 @@ public class MainActivity extends AppCompatActivity {
         fragName = new FragName().setLabel("Your name?");
         fragAge = new FragAge().setLabel("Your age?");
         fragResult = new FragOutput();
-        switchToFragment(fragName, "Get Name Fragment.");
+        switchToFragment(1);
+    }
+
+    public void switchToFragment(int s) {
+        switch(s) {
+            case 1:
+                switchToFragment(fragName, "Get Name Fragment.");
+                break;
+            case 2:
+                switchToFragment(fragAge, "Get Age Fragment.");
+                break;
+            default:
+                fragResult.setLabel("Name: " + name + ", Age: " + age);
+                switchToFragment(fragResult, "Show result" );
+                break;
+        }
     }
 
     public void switchToFragment(Fragment fragment, String fragName) {
@@ -96,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onButtonClicked(String content) {
             getMainActivity().setName(content);
-            getMainActivity().switchToFragment(getMainActivity().fragAge, "Get Age Fragment.");
+            getMainActivity().switchToFragment(2);
         }
 
         private MainActivity getMainActivity() {
@@ -108,8 +124,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onButtonClicked(String content) {
             getMainActivity().setAge(content);
-            getMainActivity().fragResult.setLabel("Name: " + getMainActivity().name + ", Age: " + getMainActivity().age);
-            getMainActivity().switchToFragment(getMainActivity().fragResult, "Show result");
+            getMainActivity().switchToFragment(3);
         }
 
         private MainActivity getMainActivity() {
