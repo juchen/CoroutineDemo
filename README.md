@@ -16,7 +16,7 @@ We choose a very simple scenario for this example. 3 pages are shown one by one.
 In the first page, the user enter her name, second page, her age, and the last page
 shows the result: the user's name and age.
 
-![Screen cast][screencast.gif]
+![Screen cast][https://github.com/juchen/CoroutineDemo/blob/document/screencast.gif]
 
 There are tons of better methods to similar jobs then what's in this example.
 However, our purpose is a demo to the similarity betwenn a switch-case function and a coroutine.
