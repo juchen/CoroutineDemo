@@ -16,9 +16,16 @@ We choose a very simple scenario for this example. 3 pages are shown one by one.
 In the first page, the user enter her name, second page, her age, and the last page
 shows the result: the user's name and age.
 
-![Screen cast](https://github.com/juchen/CoroutineDemo/blob/document/screencast.gif)
+![Screen cast](docs/images/screencast.gif)
 
 There are tons of better methods to similar jobs then what's in this example.
 However, our purpose is a demo to the similarity betwenn a switch-case function and a coroutine.
 So, we choose to bear with our not-so-good implementation.
+
+The first though is to use 3 fragments. The first one has a label for prompt, a edit text for entering the name,
+and a button to go to the next step. In the click listener of the button, the next fragment will be brought out...,
+and so on until the last fragment is brought out to show the result.
+
+![First thought](docs/images/screencast.gif)
+
 
