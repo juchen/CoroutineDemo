@@ -1,4 +1,10 @@
-A simple Android APP to demo a coroutine as an alternative to a switch-case state running function
+Description
+===========
+ 
+https://github.com/juchen/CoroutineDemo
+
+A simple Android APP to demo a coroutine as an alternative
+to a switch-case state running function
 
 A coroutine can be viewed as a state machine. When it is suspended, it enters a state.
 When it is resumed, it run the state transition. Side effects are its output and the state
@@ -84,9 +90,11 @@ While the button in the `fragAge` fragment is clicked, the `fragResult` will be 
     }
 ```
 
-This implementation is straightforward. But every fragment has to know which is the next fragment that it should bring out.
-This is not idea because the logic of transition of UI pages is scattered everywhere and
-it is hard to change the logic. We refactor the code and introduce a central state runner to handle the logic in one place.
+This implementation is straightforward. But every fragment has to know
+which is the next fragment that it should bring out. This is not ideal
+because the logic of transition of UI pages is scattered everywhere and
+it is hard to change the logic. We will refactor the code and introduce
+a central state runner to handle the logic in one place.
 
 Use a state machine
 ===================
@@ -166,9 +174,10 @@ We have a better alternative: the Kotlin Coroutine.
 Use Kotlin Coroutine
 ====================
 
-The implementation is at the commit tagged 'kotlin-coroutine'. The `MainActivity.java` exists no more.
-It has be converted to `MainActivity.kt` before being refactored to use a Kotlin Coroutine, instead of
-the stage runner state machine.
+The implementation is at the commit tagged 'kotlin-coroutine'. The
+`MainActivity.java` exists no more. It has been converted to
+`MainActivity.kt` before being refactored to use a Kotlin Coroutine,
+instead of the stage runner state machine.
 
 If you are not familiar with the syntax of Kotlin, you may want to take
 a look at the commit "Converted to Kotlin code." and compare with the
@@ -177,7 +186,8 @@ because the conversion was carried out by the IDE.
 
 ![Use Kotlin Coroutine](docs/images/use_coroutine.png)
 
-The difference of this figure from last one is obvious. A sequence chart is used instead of the state chart.
+The difference of this figure from last one is obvious. A sequence chart
+is used instead of the state chart.
 
 Let me say it boldly. A coroutine is essentially a switch-case function,
 almost. Not exactly the same of course because a coroutine has its own
@@ -211,7 +221,7 @@ variable manually as we have to do in the stage runner. Any flow
 control, `if-else`, `for`, `while`, and etc... can be used and you get a
 state machine immediately.
 
-One may notice that the `name` and `age` can be kept on "local"
+One may notice that the `name` and `age` can be kept in "local"
 variables in a coroutine. This is neat and convenient.
  
 Now let's take a closer look at details of the coroutine.
@@ -220,9 +230,9 @@ Start of a coroutine
 ====================
 
 Depending on what dispatcher is used, a coroutine may be run by a thread
-of threads in various way. To focus, we will just discuss the dispatcher
-`Dispatcher.Main`. It behaviour is similar to a `Handler` of the Main
-thread. The code to start the coroutine is
+or a pool of threads in various way. To keep focused, we will just
+discuss the dispatcher `Dispatcher.Main`. Its behaviour is similar to a
+`Handler` of the Main thread. The code to start the coroutine is
 
 ```kotlin
         suspend {
@@ -231,7 +241,7 @@ thread. The code to start the coroutine is
         }.startCoroutine(complete)
 ```
 
-Maybe we can see it as a `post` on the main thread handler as if
+Maybe we can see it as a `post()` on the main thread handler as if
 
 ```kotlin
         Handler().post {
@@ -243,14 +253,16 @@ Maybe we can see it as a `post` on the main thread handler as if
 
 The difference is that `startCoroutine()` takes a `suspend` function,
 instead. When a suspend function is suspended, the control is returned
-to the message loop of the thread, in my best guess.
+to the message loop of the thread, similar to when a `Runnable` is
+finished, in my best guess.
 
 Generally we do not have to use so primitive a function
 `startCoroutine()`. We can use constructs such as `launch`, `async`, or
 `runBlocking`. We use `startCoroutine()` just because this is a demo.
 
-The `startCoroutine()` take a lambda to run. In our case, it outputs a
-log message and call the suspend function `coRunner()`.
+The `startCoroutine()` take a lambda to run. This lambda funciton, in
+our code, outputs a log message and calls the suspend function
+`coRunner()`.
  
 Some log messages have been added in the code for convenience to trace
 the execution flow.
@@ -294,7 +306,7 @@ Suspend and resume
 A coroutine supends by calling `suspendCoroutine<T>()`, defined as
 
 ```
-public suspend inline fun <T> suspendCoroutine(crossinline block: (Continuation<T>) -> Unit): T =
+public suspend inline fun <T> suspendCoroutine(crossinline block: (Continuation<T>) -> Unit): T
 ```
 
 This function takes a lambda function, runs it, and then suspends.
@@ -308,16 +320,15 @@ In our code
             switchToFragment(fragName, "Get Name Fragment.")
         }
 ```
- 
-It calls the lambda function with an argument of the type
-`Continuation<T>`, which is `Continuation<String>` in our case, because
-we are using `suspendCoroutine<String>`
+It takes a lambda function and returns as `String` as specified in the
+type parameter. The lambda function is given an argument of the type
+`Continuation<T>`, which is `Continuation<String>` in our case.
 
 In the lambda function, we save the argument `cont` somewhere safe, that
-is `contGetName`. And then, the `fragName` fragment is brought out.
-Then, the coroutine suspends and returns to the message looper of the
-Main thread. (Again, this depends on the implementation of the
-dispatcher.)
+is `contGetName`. And then, the `fragName` fragment is brought out. This
+lambda function is run before suspension. Then, the coroutine suspends
+and returns the control to the message loop of the Main thread.
+(Again, this depends on the implementation of the dispatcher.)
 
 In the click listener of the "Next" button of the UI, the
 `doneGetName()` function is called.
@@ -333,20 +344,22 @@ In the click listener of the "Next" button of the UI, the
 ```
 
 It calls the `resume(name)` method (let's assume `name == "John"`) on
-the `contGetName` object that we saved earlier and then, the
-`suspendCoroutine()` returns a string "John". The coroutine is back
+the `contGetName` object that we saved earlier. This causes
+`suspendCoroutine()` to return a string "John". The coroutine is back to
 alive.
 
 The end of the coroutine
 ========================
 
-Along the code flow of a coroutine, it may suspends and be resumed many
+Along the code flow of a coroutine, it may suspend and be resumed many
 times. No limit. And maybe finally, it returns.
 
 Or maybe it throws some exception and exits.
 
-Anyway, the `resumeWith()` method will be call on the object that is
-given to the `startCoroutine` function
+Anyway, if the coroutine exits, the `resumeWith()` method will be call
+on the object `complete` that is given to the `startCoroutine(complete)`
+function. We can get the result of the coroutine, either a return value
+or an exception.
 
 
 Summary
@@ -359,10 +372,10 @@ Summary
   a linear code flow.
 
 * Going further. Many about coroutine are there to learn. Such as
-  Dispatcher, Job, CoroutineContext.
+  `Dispatcher`, `Job`, `CoroutineContext`...
 
 * Many good functions has been implemented with Coroutine. Such as
-  async/await, generator,... etc.
+  `async`/`await()`, generator,... etc.
 
 
 
